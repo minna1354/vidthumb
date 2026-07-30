@@ -1,0 +1,440 @@
+﻿"use client";
+
+import { useState, useRef, useCallback, useEffect } from "react";
+
+const TARGET_SIZE = { width: 1280, height: 720 };
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+type TextPosition = "top" | "center" | "bottom";
+
+interface ImageState {
+  url: string;
+  width: number;
+  height: number;
+  file: File;
+}
+
+export default function ThumbnailEditor() {
+  const [image, setImage] = useState<ImageState | null>(null);
+  const [textOverlay, setTextOverlay] = useState("");
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [textSize, setTextSize] = useState(72);
+  const [textPosition, setTextPosition] = useState<TextPosition>("bottom");
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clean up object URL when image changes/unmounts
+  useEffect(() => {
+    return () => {
+      if (image?.url) URL.revokeObjectURL(image.url);
+    };
+  }, [image]);
+
+  // Re-render preview whenever inputs change (after first render)
+  useEffect(() => {
+    if (image) renderPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image, textOverlay, textColor, textSize, textPosition]);
+
+  const handleFile = useCallback((file: File) => {
+    setError(null);
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file (JPG, PNG, or WebP).");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      setImage({
+        url,
+        width: img.width,
+        height: img.height,
+        file,
+      });
+      // Reset text overlay when new image
+      setTextOverlay("");
+    };
+    img.onerror = () => {
+      setError("Failed to load image. Please try another file.");
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    },
+    [handleFile]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const renderPreview = useCallback(() => {
+    if (!image || !canvasRef.current) return;
+
+    setProcessing(true);
+    const canvas = canvasRef.current;
+    canvas.width = TARGET_SIZE.width;
+    canvas.height = TARGET_SIZE.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setProcessing(false);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      // Cover resize: fill the target, may crop
+      const scale = Math.max(
+        TARGET_SIZE.width / img.width,
+        TARGET_SIZE.height / img.height
+      );
+      const scaledW = img.width * scale;
+      const scaledH = img.height * scale;
+      const x = (TARGET_SIZE.width - scaledW) / 2;
+      const y = (TARGET_SIZE.height - scaledH) / 2;
+
+      // Black background (in case image has transparency)
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, TARGET_SIZE.width, TARGET_SIZE.height);
+      ctx.drawImage(img, x, y, scaledW, scaledH);
+
+      // Draw text overlay
+      if (textOverlay.trim()) {
+        ctx.font = `bold ${textSize}px "Inter", system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = textColor;
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = Math.max(textSize / 12, 4);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        let yPos: number;
+        if (textPosition === "top") yPos = textSize + 30;
+        else if (textPosition === "center") yPos = TARGET_SIZE.height / 2;
+        else yPos = TARGET_SIZE.height - textSize - 30;
+
+        // Wrap text if too wide
+        const maxWidth = TARGET_SIZE.width - 80;
+        const words = textOverlay.split(" ");
+        const lines: string[] = [];
+        let currentLine = words[0] || "";
+
+        for (let i = 1; i < words.length; i++) {
+          const testLine = currentLine + " " + words[i];
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = words[i];
+          } else {
+            currentLine = testLine;
+          }
+        }
+        lines.push(currentLine);
+
+        // Draw lines
+        const lineHeight = textSize * 1.1;
+        const totalHeight = lines.length * lineHeight;
+        let startY = yPos - (totalHeight - lineHeight) / 2;
+
+        lines.forEach((line, i) => {
+          const lineY = startY + i * lineHeight;
+          ctx.strokeText(line, TARGET_SIZE.width / 2, lineY);
+          ctx.fillText(line, TARGET_SIZE.width / 2, lineY);
+        });
+      }
+
+      setProcessing(false);
+    };
+    img.src = image.url;
+  }, [image, textOverlay, textColor, textSize, textPosition]);
+
+  const handleDownload = useCallback(() => {
+    if (!canvasRef.current) return;
+    canvasRef.current.toBlob((blob) => {
+      if (!blob) {
+        setError("Failed to generate image. Please try again.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `youtube-thumbnail-1280x720-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }, []);
+
+  const handleReset = useCallback(() => {
+    if (image?.url) URL.revokeObjectURL(image.url);
+    setImage(null);
+    setTextOverlay("");
+    setTextColor("#ffffff");
+    setTextSize(72);
+    setTextPosition("bottom");
+    setError(null);
+  }, [image]);
+
+  // Computed values
+  const aspectOK =
+    image &&
+    image.width === TARGET_SIZE.width &&
+    image.height === TARGET_SIZE.height;
+
+  // --- Render ---
+
+  if (!image) {
+    return (
+      <div>
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="border-2 border-dashed border-gray-300 rounded-2xl p-12 md:p-16 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50/30 transition-all"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+            className="hidden"
+            aria-label="Upload image"
+          />
+          <div className="text-5xl mb-4">📤</div>
+          <p className="text-xl md:text-2xl font-bold mb-2 text-gray-800">
+            Drop your image here
+          </p>
+          <p className="text-gray-500 mb-4">or click to browse</p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+            <span className="px-3 py-1 bg-gray-100 rounded-full">JPG</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">PNG</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">WebP</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">Max 10MB</span>
+          </div>
+          <p className="mt-6 text-xs text-gray-400">
+            🔒 Your images never leave your browser
+          </p>
+        </div>
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Top status bar */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <div className="flex items-center gap-3">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              aspectOK
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {aspectOK ? "✓ Perfect size" : "Needs resize"}
+          </span>
+          <span className="text-gray-500">
+            Original: {image.width}×{image.height}
+          </span>
+        </div>
+        <button
+          onClick={handleReset}
+          className="text-gray-500 hover:text-gray-700 text-sm underline"
+        >
+          Upload different image
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Original */}
+        <div>
+          <h3 className="font-bold mb-2 text-sm text-gray-500 uppercase tracking-wide">
+            Original
+          </h3>
+          <div className="bg-gray-100 rounded-xl overflow-hidden aspect-video flex items-center justify-center">
+            <img
+              src={image.url}
+              alt="Original upload"
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div>
+          <h3 className="font-bold mb-2 text-sm text-gray-500 uppercase tracking-wide">
+            Preview (1280×720)
+          </h3>
+          <div className="bg-gray-100 rounded-xl overflow-hidden aspect-video relative">
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full"
+              style={{ display: "block" }}
+            />
+            {processing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-sm">
+                Processing...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6">
+        <h3 className="font-bold mb-4">Customize</h3>
+
+        <div className="space-y-4">
+          {/* Text overlay */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Text overlay (optional)
+            </label>
+            <input
+              type="text"
+              value={textOverlay}
+              onChange={(e) => setTextOverlay(e.target.value)}
+              placeholder="e.g. How to make THUMBNAILS"
+              maxLength={50}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          {textOverlay.trim() && (
+            <div className="grid sm:grid-cols-3 gap-4 pl-1">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Color
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="w-10 h-10 rounded cursor-pointer border border-gray-300"
+                  />
+                  <input
+                    type="text"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Size: {textSize}px
+                </label>
+                <input
+                  type="range"
+                  min={24}
+                  max={120}
+                  value={textSize}
+                  onChange={(e) => setTextSize(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Position
+                </label>
+                <div className="flex gap-1">
+                  {(["top", "center", "bottom"] as TextPosition[]).map(
+                    (pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setTextPosition(pos)}
+                        className={`flex-1 px-3 py-1 text-sm rounded border ${
+                          textPosition === pos
+                            ? "bg-purple-600 text-white border-purple-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-purple-400"
+                        }`}
+                      >
+                        {pos}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          {!aspectOK && (
+            <button
+              onClick={renderPreview}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+            >
+              Re-apply resize
+            </button>
+          )}
+          <button
+            onClick={handleDownload}
+            disabled={processing}
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+          >
+            {processing ? "Processing..." : "Download Thumbnail (PNG)"}
+          </button>
+        </div>
+      </div>
+
+      {/* Spec info */}
+      <div className="mt-6 grid sm:grid-cols-3 gap-3 text-center text-sm">
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+          <div className="font-bold text-blue-900">1280×720</div>
+          <div className="text-blue-700 text-xs">YouTube recommended</div>
+        </div>
+        <div className="bg-green-50 border border-green-100 rounded-lg p-3">
+          <div className="font-bold text-green-900">PNG</div>
+          <div className="text-green-700 text-xs">High quality output</div>
+        </div>
+        <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+          <div className="font-bold text-purple-900">{"< 2MB"}</div>
+          <div className="text-purple-700 text-xs">Within YouTube limit</div>
+        </div>
+      </div>
+    </div>
+  );
+}

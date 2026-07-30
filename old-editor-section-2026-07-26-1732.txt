@@ -1,0 +1,56 @@
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <div className="flex items-center gap-3">
+          <span className={"px-3 py-1 rounded-full text-xs font-medium " + (aspectOK ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
+            {aspectOK ? "Perfect size" : "Needs resize"}
+          </span>
+          <span className="text-gray-500">Original: {image.width}x{image.height}</span>
+        </div>
+        <button onClick={handleReset} className="text-gray-500 hover:text-gray-700 text-sm underline">
+          Upload different image
+        </button>
+      </div>
+
+      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div>
+          <h3 className="font-bold mb-2 text-sm text-gray-500 uppercase tracking-wide">Original</h3>
+          <div className="bg-gray-100 rounded-xl overflow-hidden aspect-video flex items-center justify-center">
+            <img src={image.url} alt="Original" className="max-w-full max-h-full object-contain" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-sm text-gray-500 uppercase tracking-wide">Preview ({TARGET_SIZE.width}x{TARGET_SIZE.height})</h3>
+            {positionChanged && <button onClick={handleResetPosition} className="text-xs text-purple-600 hover:text-purple-800 underline">Reset position</button>}
+          </div>
+          <div ref={previewContainerRef}
+            onMouseDown={handlePreviewPointerDown}
+            onTouchStart={handlePreviewPointerDown}
+            className={"bg-gray-100 rounded-xl overflow-hidden aspect-video relative select-none " + (isDragging ? "cursor-grabbing" : "cursor-grab")}
+            style={{ touchAction: "none" }}>
+            <canvas ref={canvasRef} className="w-full h-full pointer-events-none" style={{ display: "block" }} />
+            {processing && <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-sm pointer-events-none">Processing...</div>}
+            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none font-mono">Zoom {zoomPercent}%</div>
+            {!isDragging && !processing && <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none">Drag - Scroll - R/H/V/+/-</div>}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} className="w-8 h-8 rounded border border-gray-300 hover:border-purple-500 disabled:opacity-30" title="Zoom out">-</button>
+            <input type="range" min={MIN_ZOOM * 100} max={MAX_ZOOM * 100} value={zoomPercent} onChange={(e) => setZoom(Number(e.target.value) / 100)} className="w-20" />
+            <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} className="w-8 h-8 rounded border border-gray-300 hover:border-purple-500 disabled:opacity-30" title="Zoom in">+</button>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <button onClick={rotateCCW} className="w-8 h-8 rounded border border-gray-300 hover:border-purple-500" title="Rotate left 15 deg">{"<-"}</button>
+            <input type="range" min={0} max={359} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="w-20" aria-label="Rotation angle" title="Drag to rotate any angle" />
+            <span className="text-sm font-mono w-10 text-center">{rotation}deg</span>
+            <button onClick={rotateCW} className="w-8 h-8 rounded border border-gray-300 hover:border-purple-500" title="Rotate right 15 deg">{"->"}</button>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <button onClick={toggleFlipH} className={"w-8 h-8 rounded border " + (flipH ? "bg-purple-600 text-white border-purple-600" : "border-gray-300 hover:border-purple-500")} title="Flip horizontal (H)">{"<->"}</button>
+            <button onClick={toggleFlipV} className={"w-8 h-8 rounded border " + (flipV ? "bg-purple-600 text-white border-purple-600" : "border-gray-300 hover:border-purple-500")} title="Flip vertical (V)">Flip V</button>
+            {transformChanged && <button onClick={handleResetTransforms} className="text-xs text-purple-600 hover:text-purple-800 underline ml-1">Reset</button>}
+          </div>
+        </div>
+      </div>      

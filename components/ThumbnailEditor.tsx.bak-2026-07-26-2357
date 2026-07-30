@@ -1,0 +1,556 @@
+"use client";
+
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+
+const TARGET_SIZE = { width: 1280, height: 720 };
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.1;
+const ROTATE_STEP = 15;
+
+type ExportFormat = "png" | "jpeg";
+
+interface ImageState {
+  url: string;
+  width: number;
+  height: number;
+  file: File;
+}
+
+interface Platform {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+}
+
+const PLATFORMS: Platform[] = [
+  { id: "youtube", name: "YouTube", width: 1280, height: 720 },
+  { id: "shorts", name: "Shorts", width: 1080, height: 1920 },
+  { id: "tiktok", name: "TikTok", width: 1080, height: 1920 },
+  { id: "instagram", name: "Instagram", width: 1080, height: 1080 },
+];
+
+function drawToCanvas(
+  canvas: HTMLCanvasElement,
+  size: { width: number; height: number },
+  opts: {
+    bgColor: string;
+    image: HTMLImageElement | null;
+    offset: { x: number; y: number };
+    zoom: number;
+  }
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  canvas.width = size.width;
+  canvas.height = size.height;
+  ctx.fillStyle = opts.bgColor;
+  ctx.fillRect(0, 0, size.width, size.height);
+  if (!opts.image) return;
+  const baseScale = Math.max(size.width / opts.image.width, size.height / opts.image.height);
+  const finalScale = baseScale * opts.zoom;
+  const scaledW = opts.image.width * finalScale;
+  const scaledH = opts.image.height * finalScale;
+  const baseX = (size.width - scaledW) / 2;
+  const baseY = (size.height - scaledH) / 2;
+  const sx = size.width / TARGET_SIZE.width;
+  const sy = size.height / TARGET_SIZE.height;
+  ctx.drawImage(opts.image, baseX + opts.offset.x * sx, baseY + opts.offset.y * sy, scaledW, scaledH);
+
+}
+
+function downloadCanvas(canvas: HTMLCanvasElement, fileName: string, format: ExportFormat, quality: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error("toBlob failed"));
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        resolve();
+      },
+      format === "jpeg" ? "image/jpeg" : "image/png",
+      format === "jpeg" ? quality : undefined
+    );
+  });
+}
+
+export default function ThumbnailEditor() {  const [image, setImage] = useState<ImageState | null>(null);
+  const [workingImage, setWorkingImage] = useState<HTMLImageElement | null>(null);
+  const [rotation, setRotation] = useState(0);
+  const [flipH, setFlipH] = useState(false);
+  const [flipV, setFlipV] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1.0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [bgColor, setBgColor] = useState("#000000");
+  const [format, setFormat] = useState<ExportFormat>("png");
+  const [quality, setQuality] = useState(0.92);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["youtube"]);
+  const [previewPlatform, setPreviewPlatform] = useState<string>("youtube");
+  const previewSize = PLATFORMS.find((p) => p.id === previewPlatform) || PLATFORMS[0];
+  // Per-platform transform state
+  type TransformState = { offset: { x: number; y: number }; zoom: number; rotation: number; flipH: boolean; flipV: boolean };
+  const defaultTransform = (): TransformState => ({ offset: { x: 0, y: 0 }, zoom: 1, rotation: 0, flipH: false, flipV: false });
+  const [platformTransforms, setPlatformTransforms] = useState<Record<string, TransformState>>({
+    youtube: defaultTransform(),
+    shorts: defaultTransform(),
+    tiktok: defaultTransform(),
+    instagram: defaultTransform(),
+  });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [previewBoxSize, setPreviewBoxSize] = useState({ width: 800, height: 450 });
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
+  const editStartRef = useRef<{ offset: { x: number; y: number }; zoom: number; rotation: number; flipH: boolean; flipV: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 });
+
+  const drawOpts = useMemo(
+    () => ({ bgColor, image: workingImage, offset, zoom }),
+    [bgColor, workingImage, offset, zoom]
+  );
+
+  useEffect(() => {
+    return () => { if (image?.url) URL.revokeObjectURL(image.url); };
+  }, [image]);
+
+  useEffect(() => {
+    setRotation(0); setFlipH(false); setFlipV(false); setOffset({ x: 0, y: 0 }); setZoom(1.0);
+  }, [image]);
+
+  useEffect(() => {
+    const computeSize = () => {
+      if (!previewWrapperRef.current) return;
+      const maxW = previewWrapperRef.current.clientWidth;
+      const maxH = window.innerHeight * 0.7;
+      const aspect = previewSize.width / previewSize.height;
+      let w, h;
+      if (maxW / aspect <= maxH) {
+        w = maxW;
+        h = maxW / aspect;
+      } else {
+        h = maxH;
+        w = maxH * aspect;
+      }
+      setPreviewBoxSize({ width: w, height: h });
+    };
+    // Use ResizeObserver to react to layout changes (initial mount + window resize)
+    const el = previewWrapperRef.current;
+    if (!el) return;
+    computeSize();
+    const ro = new ResizeObserver(computeSize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [previewSize, image]);
+
+  useEffect(() => {
+    if (!image) { setWorkingImage(null); return; }
+    let cancelled = false;
+    const orig = new Image();
+    orig.onload = () => {
+      if (cancelled) return;
+      const noTransform = rotation === 0 && !flipH && !flipV;
+      if (noTransform) { setWorkingImage(orig); return; }
+      // Arbitrary rotation: compute exact bounding box using trig
+      const angleRad = (rotation * Math.PI) / 180;
+      const cosA = Math.abs(Math.cos(angleRad));
+      const sinA = Math.abs(Math.sin(angleRad));
+      const w = Math.ceil(orig.width * cosA + orig.height * sinA);
+      const h = Math.ceil(orig.width * sinA + orig.height * cosA);
+      const tmp = document.createElement("canvas");
+      tmp.width = w;
+      tmp.height = h;
+      const ctx = tmp.getContext("2d");
+      if (!ctx) return;
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(angleRad);
+      ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+      ctx.drawImage(orig, -orig.width / 2, -orig.height / 2);
+      const transformed = new Image();
+      transformed.onload = () => { if (!cancelled) setWorkingImage(transformed); };
+      transformed.src = tmp.toDataURL();
+    };
+    orig.src = image.url;
+    return () => { cancelled = true; };
+  }, [image, rotation, flipH, flipV]);
+
+  useEffect(() => {
+    if (!workingImage || !canvasRef.current) return;
+    setProcessing(true);
+    drawToCanvas(canvasRef.current, previewSize, drawOpts);
+    setProcessing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawOpts, previewSize]);  const handleFile = useCallback((file: File) => {
+    setError(null);
+    if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
+    if (file.size > MAX_FILE_SIZE) { setError("File too large. Max 10MB."); return; }
+    // Reset all platform transforms
+    setPlatformTransforms({
+      youtube: defaultTransform(),
+      shorts: defaultTransform(),
+      tiktok: defaultTransform(),
+      instagram: defaultTransform(),
+    });
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => setImage({ url, width: img.width, height: img.height, file });
+    img.onerror = () => { setError("Failed to load image."); URL.revokeObjectURL(url); };
+    img.src = url;
+  }, []);
+  const handleDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }, [handleFile]);
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
+
+  const handlePreviewPointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!isEditMode || !previewContainerRef.current) return;
+    const point = "touches" in e ? e.touches[0] : e;
+    setIsDragging(true);
+    dragStartRef.current = { mouseX: point.clientX, mouseY: point.clientY, offsetX: offset.x, offsetY: offset.y };
+  }, [offset, isEditMode]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!previewContainerRef.current) return;
+      const point = "touches" in e ? e.touches[0] : e;
+      const rect = previewContainerRef.current.getBoundingClientRect();
+      const scale = previewSize.width / rect.width;
+      const canvasDx = (point.clientX - dragStartRef.current.mouseX) * scale;
+      const canvasDy = (point.clientY - dragStartRef.current.mouseY) * scale;
+      setOffset({ x: dragStartRef.current.offsetX + canvasDx, y: dragStartRef.current.offsetY + canvasDy });
+    };
+    const handleUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el || !isEditMode) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const direction = e.deltaY < 0 ? 1 : -1;
+      const factor = 1 + direction * ZOOM_STEP;
+      setZoom((prev) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev * factor)));
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [image, isEditMode]);
+
+  const zoomIn = useCallback(() => setZoom((p) => Math.min(MAX_ZOOM, p + ZOOM_STEP * 2)), []);
+  const zoomOut = useCallback(() => setZoom((p) => Math.max(MIN_ZOOM, p - ZOOM_STEP * 2)), []);
+  const rotateCW = useCallback(() => setRotation((r) => (r + ROTATE_STEP) % 360), []);
+  const rotateCCW = useCallback(() => setRotation((r) => (r - ROTATE_STEP + 360) % 360), []);
+  const toggleFlipH = useCallback(() => setFlipH((f) => !f), []);
+  const toggleFlipV = useCallback(() => setFlipV((f) => !f), []);
+  const handleResetPosition = useCallback(() => { setOffset({ x: 0, y: 0 }); setZoom(1.0); }, []);
+  const handleResetTransforms = useCallback(() => { setRotation(0); setFlipH(false); setFlipV(false); }, []);
+  const togglePlatform = useCallback((id: string) => {
+    setSelectedPlatforms((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  }, []);
+
+  const handleDownloadAll = useCallback(async () => {
+    if (!workingImage) return;
+    if (selectedPlatforms.length === 0) { setError("Please select at least one platform."); return; }
+    setProcessing(true);
+    try {
+      for (let i = 0; i < selectedPlatforms.length; i++) {
+        const platform = PLATFORMS.find((p) => p.id === selectedPlatforms[i]);
+        if (!platform) continue;
+        const tempCanvas = document.createElement("canvas");
+        drawToCanvas(tempCanvas, { width: platform.width, height: platform.height }, drawOpts);
+        const ext = format === "jpeg" ? "jpg" : "png";
+        await downloadCanvas(tempCanvas, `vidthumb-${platform.id}-${platform.width}x${platform.height}.${ext}`, format, quality);
+        if (i < selectedPlatforms.length - 1) await new Promise((r) => setTimeout(r, 300));
+      }
+    } catch (e) { setError("Download failed."); } finally { setProcessing(false); }
+  }, [workingImage, selectedPlatforms, format, quality, drawOpts]);
+
+  useEffect(() => {
+    if (!image || !isEditMode) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (e.key === "r" || e.key === "R") { e.preventDefault(); if (e.shiftKey) rotateCCW(); else rotateCW(); }
+      else if (e.key === "h" || e.key === "H") toggleFlipH();
+      else if (e.key === "v" || e.key === "V") toggleFlipV();
+      else if (e.key === "+" || e.key === "=") zoomIn();
+      else if (e.key === "-" || e.key === "_") zoomOut();
+      else if (e.key === "0") handleResetPosition();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [image, isEditMode, rotateCW, rotateCCW, toggleFlipH, toggleFlipV, zoomIn, zoomOut, handleResetPosition]);
+
+  // Switch to a different platform - save current state, load new state
+  const switchPlatform = useCallback((newPlatformId: string) => {
+    if (newPlatformId === previewPlatform) return;
+    // Save current platform state
+    setPlatformTransforms((prev) => ({
+      ...prev,
+      [previewPlatform]: { offset, zoom, rotation, flipH, flipV },
+    }));
+    // Load new platform state (from existing or default)
+    const newState = platformTransforms[newPlatformId] || defaultTransform();
+    setOffset(newState.offset);
+    setZoom(newState.zoom);
+    setRotation(newState.rotation);
+    setFlipH(newState.flipH);
+    setFlipV(newState.flipV);
+    setPreviewPlatform(newPlatformId);
+    setIsEditMode(false);
+  }, [previewPlatform, offset, zoom, rotation, flipH, flipV, platformTransforms]);
+
+  const enterEditMode = useCallback(() => { editStartRef.current = { offset, zoom, rotation, flipH, flipV }; setIsEditMode(true); }, [offset, zoom, rotation, flipH, flipV]);
+  const confirmEdit = useCallback(() => { setIsEditMode(false); }, []);
+  const cancelEdit = useCallback(() => { if (editStartRef.current) { setOffset(editStartRef.current.offset); setZoom(editStartRef.current.zoom); setRotation(editStartRef.current.rotation); setFlipH(editStartRef.current.flipH); setFlipV(editStartRef.current.flipV); } setIsEditMode(false); }, []);
+  const handleReset = useCallback(() => {
+    if (image?.url) URL.revokeObjectURL(image.url);
+    setImage(null); setError(null);
+  }, [image]);
+
+  const aspectOK = image && image.width === TARGET_SIZE.width && image.height === TARGET_SIZE.height;
+  const positionChanged = offset.x !== 0 || offset.y !== 0 || zoom !== 1.0;
+  const transformChanged = rotation !== 0 || flipH || flipV;
+  const zoomPercent = Math.round(zoom * 100);
+  const platformLabel = useMemo(() => {
+    if (selectedPlatforms.length === 0) return "None";
+    if (selectedPlatforms.length === 1) return PLATFORMS.find((p) => p.id === selectedPlatforms[0])?.name || "";
+    return `${selectedPlatforms.length} platforms`;
+  }, [selectedPlatforms]);
+  if (!image) {
+    return (
+      <div>
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); } }}
+          className="border-2 border-dashed border-gray-300 rounded-2xl p-12 md:p-16 text-center cursor-pointer hover:border-indigo- hover:bg-indigo-/30 transition-all"
+        >
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            className="hidden" aria-label="Upload image" />
+          <div className="text-5xl mb-4">Drop here</div>
+          <p className="text-xl md:text-2xl font-bold mb-2 text-gray-800">Drop your image here</p>
+          <p className="text-gray-500 mb-4">or click to browse</p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+            <span className="px-3 py-1 bg-gray-100 rounded-full">JPG</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">PNG</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">WebP</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">Max 10MB</span>
+          </div>
+          <p className="mt-6 text-xs text-gray-400">Your images never leave your browser</p>
+        </div>
+        {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
+      </div>
+    );
+  }  return (
+    <div>
+      {/* Status bar with compact Original thumbnail */}
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-16 h-9 bg-gray-100 rounded overflow-hidden flex items-center justify-center flex-shrink-0 border border-gray-200">
+            <img src={image.url} alt="Original" className="max-w-full max-h-full object-contain" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className={"text-xs font-medium px-2 py-0.5 rounded-full w-fit " + (aspectOK ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
+              {aspectOK ? "Perfect size" : "Needs resize"}
+            </span>
+            <span className="text-xs text-gray-500 mt-0.5 truncate">{image.width}x{image.height}</span>
+          </div>
+        </div>
+        <button onClick={handleReset} className="text-xs text-gray-500 hover:text-gray-700 underline whitespace-nowrap">
+          Upload different
+        </button>
+      </div>
+
+      {error && <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
+
+      {/* Preview - full width, no comparison panel */}
+      {/* Preview wrapper */}
+      <div ref={previewWrapperRef} className="w-full mx-auto">
+      <div className="flex flex-wrap gap-1 mb-2 justify-center">
+        {PLATFORMS.map((p) => (
+          <button
+            key={"preview-" + p.id}
+            onClick={() => switchPlatform(p.id)}
+            className={"px-3 py-1.5 text-xs rounded-lg border " + (previewPlatform === p.id ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white border-indigo-" : "bg-white text-gray-700 border-gray-300 hover:border-indigo-")}
+            title={"Preview as " + p.name + " (" + p.width + "x" + p.height + ")"}
+          >
+            {p.name}
+            <span className="opacity-70 ml-1">{p.width}x{p.height}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Edit mode toggle */}
+      <div className="flex justify-center mb-2">
+        {isEditMode ? (
+          <div className="flex gap-2">
+            <button onClick={confirmEdit} className="px-4 py-1.5 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">
+              Confirm
+            </button>
+            <button onClick={cancelEdit} className="px-4 py-1.5 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={enterEditMode} className="px-4 py-1.5 text-sm font-medium bg-gradient-to-br from-orange-500 to-amber-400 text-white rounded-lg hover:bg-indigo-">
+            Edit Position / Zoom
+          </button>
+        )}
+      </div>
+
+      <div
+        ref={previewContainerRef}
+        onMouseDown={handlePreviewPointerDown}
+        onTouchStart={handlePreviewPointerDown}
+        className={"bg-gray-100 rounded-xl overflow-hidden relative select-none mx-auto transition-all " + (isEditMode ? (isDragging ? "cursor-grabbing ring-2 ring-orange-400 border-2 border-dashed border-orange-400" : "cursor-grab ring-2 ring-orange-400 border-2 border-dashed border-orange-400") : "cursor-default")}
+        style={{ touchAction: 'none', width: previewBoxSize.width + 'px', height: previewBoxSize.height + 'px' }}
+      >
+        <canvas ref={canvasRef} className="w-full h-full pointer-events-none" style={{ display: "block" }} />
+        {processing && <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-sm pointer-events-none">Processing...</div>}
+        <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none font-mono">Zoom {zoomPercent}%</div>
+        {!isDragging && !processing && <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded pointer-events-none">Drag - Scroll - R/H/V/+/-</div>}
+      </div>
+
+            </div>
+
+      {/* Tools bar - stacked rows for clarity */}
+      <div className="mt-4 bg-gray-50 rounded-lg p-3 space-y-2">
+        {/* Zoom row */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-gray-600 w-16 flex-shrink-0">Zoom</span>
+          <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM || !isEditMode} className="w-7 h-7 rounded border border-gray-300 bg-white hover:border-indigo- disabled:opacity-30 flex-shrink-0" title="Zoom out (-)">-</button>
+          <input type="range" min={MIN_ZOOM * 100} max={MAX_ZOOM * 100} value={zoomPercent} onChange={(e) => setZoom(Number(e.target.value) / 100)} disabled={!isEditMode} className="flex-1 min-w-0" aria-label="Zoom" />
+          <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM || !isEditMode} className="w-7 h-7 rounded border border-gray-300 bg-white hover:border-indigo- disabled:opacity-30 flex-shrink-0" title="Zoom in (+)">+</button>
+          <span className="text-xs font-mono text-gray-600 w-12 text-right flex-shrink-0">{zoomPercent}%</span>
+        </div>
+
+        {/* Rotation row */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-gray-600 w-16 flex-shrink-0">Rotation</span>
+          <button onClick={rotateCCW} disabled={!isEditMode} className="w-7 h-7 rounded border border-gray-300 bg-white hover:border-indigo- disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0" title="Rotate 15 deg left (Shift+R)">{"<-"}</button>
+          <input type="range" min={0} max={359} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} disabled={!isEditMode} className="flex-1 min-w-0" aria-label="Rotation" title="Drag to rotate any angle" />
+          <button onClick={rotateCW} disabled={!isEditMode} className="w-7 h-7 rounded border border-gray-300 bg-white hover:border-indigo- disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0" title="Rotate 15 deg right (R)">{"->"}</button>
+          <span className="text-xs font-mono text-gray-600 w-12 text-right flex-shrink-0">{rotation} deg</span>
+        </div>
+
+        {/* Flip row */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-gray-600 w-16 flex-shrink-0">Flip</span>
+          <button onClick={toggleFlipH} disabled={!isEditMode} className={"px-3 h-7 rounded border flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed " + (flipH ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white border-indigo-" : "bg-white border-gray-300 hover:border-indigo-")} title="Flip horizontal (H)">H</button>
+          <button onClick={toggleFlipV} disabled={!isEditMode} className={"px-3 h-7 rounded border flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed " + (flipV ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white border-indigo-" : "bg-white border-gray-300 hover:border-indigo-")} title="Flip vertical (V)">V</button>
+          <span className="text-xs text-gray-400 ml-auto">Press R/H/V/+/-</span>
+        </div>
+
+        {(transformChanged || positionChanged) && (
+          <div className="pt-2 border-t border-gray-200">
+            <button onClick={() => { handleResetPosition(); handleResetTransforms(); }} className="text-xs text-indigo- hover:text-indigo- underline">
+              Reset all
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6">
+        <h3 className="font-bold mb-4">Customize</h3>
+        <div className="space-y-4">
+
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Background color</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer border border-gray-300" />
+            <input type="text" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-24 px-2 py-1 text-sm border border-gray-300 rounded font-mono" />
+            <div className="flex gap-1 ml-2">
+              {["#000000", "#ffffff", "#1a1a1a", "#ff0000", "#0066ff"].map((c) => (
+                <button key={c} onClick={() => setBgColor(c)} className="w-6 h-6 rounded border border-gray-300" style={{ backgroundColor: c }} aria-label={"Background " + c} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
+        <h3 className="font-bold mb-4">Export</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Format and quality</label>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                <button onClick={() => setFormat("png")} className={"px-4 py-1.5 text-sm " + (format === "png" ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white" : "bg-white text-gray-700 hover:bg-gray-50")}>PNG</button>
+                <button onClick={() => setFormat("jpeg")} className={"px-4 py-1.5 text-sm " + (format === "jpeg" ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white" : "bg-white text-gray-700 hover:bg-gray-50")}>JPG</button>
+              </div>
+              {format === "jpeg" && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-600">Quality:</label>
+                  <input type="range" min={0.5} max={1} step={0.05} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="w-24" />
+                  <span className="text-xs font-mono w-10">{Math.round(quality * 100)}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Export sizes</label>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map((p) => {
+                const active = selectedPlatforms.includes(p.id);
+                return (
+                  <button key={p.id} onClick={() => togglePlatform(p.id)}
+                    className={"px-3 py-2 text-sm rounded-lg border " + (active ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white border-indigo-" : "bg-white text-gray-700 border-gray-300 hover:border-indigo-")}>
+                    <div className="font-medium">{p.name}</div>
+                    <div className="text-xs opacity-80">{p.width}x{p.height}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button onClick={handleDownloadAll} disabled={processing || selectedPlatforms.length === 0}
+            className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-lg hover:opacity-90 disabled:opacity-50 transition">
+            {processing ? "Exporting..." : "Download " + platformLabel + " (" + format.toUpperCase() + ")"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 grid sm:grid-cols-3 gap-3 text-center text-sm">
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+          <div className="font-bold text-blue-900">1280x720</div>
+          <div className="text-blue-700 text-xs">YouTube recommended</div>
+        </div>
+        <div className="bg-green-50 border border-green-100 rounded-lg p-3">
+          <div className="font-bold text-green-900">{format.toUpperCase()}</div>
+          <div className="text-green-700 text-xs">{format === "jpeg" ? Math.round(quality * 100) + "% quality" : "Lossless"}</div>
+        </div>
+        <div className="bg-indigo- border border-indigo- rounded-lg p-3">
+          <div className="font-bold text-indigo-">{selectedPlatforms.length}</div>
+          <div className="text-indigo- text-xs">size{selectedPlatforms.length !== 1 ? "s" : ""}</div>
+        </div>
+      </div>
+    </div>
+  );
+}

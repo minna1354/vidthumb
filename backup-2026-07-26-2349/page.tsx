@@ -7,7 +7,7 @@ export default function Home() {
       <header className="border-b border-gray-100">
         <div className="container mx-auto px-4 py-4 max-w-6xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg"></div>
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg"></div>
             <span className="text-xl font-bold">Vidthumb</span>
           </div>
           <nav className="hidden md:flex gap-6 text-sm text-gray-600">
@@ -25,7 +25,7 @@ export default function Home() {
           <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
             YouTube Thumbnail Size Checker
             <br className="hidden md:block" />
-            <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               & Maker
             </span>
           </h1>
@@ -51,7 +51,7 @@ export default function Home() {
               { step: 2, title: "Adjust", desc: "Drag, zoom, rotate and flip to get the perfect crop." }, { step: 3, title: "Download", desc: "Get your optimized thumbnail in PNG or JPG format." },
             ].map((item) => (
               <div key={item.step} className="text-center p-6 rounded-lg bg-gray-50">
-                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gradient-to-br from-orange-500 to-amber-400 text-white shadow-lg shadow-orange-500/40 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold">
                   {item.step}
                 </div>
                 <h3 className="font-bold mb-2">{item.title}</h3>
@@ -74,7 +74,7 @@ export default function Home() {
               },
               {
                 q: "Is this tool free?",
-                a: "Yes, completely free. No signup, no watermarks, no hidden fees. All image processing happens in your browser - we never see your files.",
+                a: "Yes, completely free. No signup, no watermarks, no hidden fees. All image processing happens in your browser 闂?we never see your files.",
               },
               {
                 q: "Are my images uploaded to a server?",
@@ -116,7 +116,7 @@ export default function Home() {
           <p className="mb-4">
             YouTube officially recommends a thumbnail size of <strong>1280x720 pixels</strong>
             (a 16:9 aspect ratio). This size ensures your thumbnail looks sharp on
-            all devices - from mobile phones to desktop TVs. Thumbnails smaller
+            all devices 闂?from mobile phones to desktop TVs. Thumbnails smaller
             than 640px wide will be rejected by YouTube.
           </p>
           <h3 className="text-xl font-bold mt-6 mb-3">
@@ -135,7 +135,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8">
         <div className="container mx-auto px-4 max-w-6xl text-center text-sm text-gray-500">
-          <p>Copyright 2026 Vidthumb. Free YouTube thumbnail tool.</p>
+          <p>濠?2026 Vidthumb. Free YouTube thumbnail tool.</p>
           <p className="mt-2">
             All image processing happens in your browser. No files are uploaded.
           </p>
