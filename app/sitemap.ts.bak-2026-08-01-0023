@@ -1,4 +1,4 @@
-﻿import { MetadataRoute } from 'next';
+import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://vidthumb.co';
@@ -10,12 +10,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 1.0,
-    },
-    {
-      url: baseUrl + '/blog/youtube-thumbnail-size-guide',
-      lastModified: now,
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
     },
   ];
 }

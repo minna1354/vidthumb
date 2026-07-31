@@ -1,10 +1,15 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "YouTube Thumbnail Size: The Complete Guide 2026",
-  description: "Everything you need to know about YouTube thumbnail sizes: 1280x720 dimensions, file size limits, format requirements, and best practices.",
-  keywords: ["youtube thumbnail size", "youtube thumbnail dimensions", "1280x720 thumbnail", "youtube shorts thumbnail"],
+  description:
+    "Everything you need to know about YouTube thumbnail sizes: 1280x720 dimensions, file size limits, format requirements, and best practices.",
+  keywords: [
+    "youtube thumbnail size",
+    "youtube thumbnail dimensions",
+    "1280x720 thumbnail",
+    "youtube shorts thumbnail",
+  ],
   openGraph: {
     title: "YouTube Thumbnail Size: The Complete Guide 2026",
     description: "Complete guide to YouTube thumbnail dimensions and best practices.",
@@ -23,9 +28,11 @@ YouTube officially recommends the following dimensions for video thumbnails:
 - Max file size: 2 MB
 - Accepted formats: JPG, GIF, PNG
 
+The 1280x720 resolution is ideal because it scales well across all devices while maintaining the 16:9 aspect ratio that matches YouTube's video player.
+
 ## Different Sizes for Different Video Types
 
-YouTube uses different thumbnail requirements:
+YouTube uses different thumbnail requirements based on video type:
 - Regular Videos: 1280 x 720 (16:9)
 - YouTube Shorts: 1080 x 1920 (9:16)
 - Instagram Post: 1080 x 1080
@@ -44,13 +51,26 @@ YouTube thumbnail requirements:
 
 1. Use bold, readable text
 2. High contrast colors
-3. Close-up faces (increase clicks 30-40%)
+3. Close-up faces (increase clicks 30-40 percent)
 4. Minimal text (under 6 words)
 5. Match your content
 
 ## Resize Your Thumbnail Now
 
-Need to resize your images? Try our free tool at vidthumb.co - handles YouTube, Shorts, Instagram, and TikTok dimensions automatically, with no upload to any server.`;
+1. Visit vidthumb.co
+2. Upload your image (JPG, PNG, or WebP)
+3. The tool automatically resizes to 1280x720
+4. Adjust position, zoom, or rotation if needed
+5. Download in JPG or PNG format
+6. Upload to YouTube Studio
+
+The whole process takes less than 30 seconds, and your image stays private - all processing happens in your browser.
+
+## Conclusion
+
+Getting your YouTube thumbnail size right is the foundation of good click-through rates. Use 1280x720 pixels as your standard, keep the file under 2 MB, and save in JPG or PNG format. For YouTube Shorts, switch to 1080x1920 vertical dimensions.
+
+Need to resize your images? Try our free tool at vidthumb.co - it handles YouTube, Shorts, Instagram, and TikTok dimensions automatically, with no upload to any server.`;
 
 const sections = content.split("\n\n");
 
@@ -61,7 +81,7 @@ export default function BlogPost() {
         <h1 className="text-4xl font-bold mb-4 text-gray-900">
           YouTube Thumbnail Size: The Complete Guide 2026
         </h1>
-        <p className="text-gray-500 mb-6">2026-07-31 · 6 min read</p>
+        <p className="text-gray-500 mb-6">2026-07-31 - 6 min read</p>
         <p className="text-lg text-gray-600 mb-8 italic">
           Everything you need to know about YouTube thumbnail sizes: 1280x720 dimensions, file size limits, format requirements, and best practices.
         </p>
