@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "YouTube Shorts Thumbnail Size: Complete Guide 2026",
+  title: "YouTube Shorts Thumbnail Size: The Complete Guide 2026",
   description:
-    "Complete guide to YouTube Shorts thumbnail dimensions, safe zones, character handling, file format, and best practices for 2026.",
+    "Complete guide to YouTube Shorts thumbnail dimensions (1080x1920), safe zones, character handling, file format, and best practices for 2026.",
   keywords: [
     "youtube shorts thumbnail size",
     "shorts thumbnail dimensions",
@@ -12,13 +12,13 @@ export const metadata: Metadata = {
     "shorts video thumbnail",
   ],
   openGraph: {
-    title: "YouTube Shorts Thumbnail Size: Complete Guide 2026",
+    title: "YouTube Thumbnail Size: The Complete Guide 2026",
     description: "Complete guide to YouTube Shorts thumbnail dimensions and best practices.",
     type: "article",
   },
 };
 
-const content = `YouTube Shorts have become one of the most powerful discovery surfaces on the platform, with over 2 billion monthly logged-in viewers watching Shorts every day. Because Shorts are vertical, the thumbnail dimensions are completely different from regular YouTube videos. This guide covers everything you need to know about YouTube Shorts thumbnail size in 2026.
+const content = `YouTube Shorts have become one of the most powerful discovery surfaces on the platform, with over 2 billion monthly logged-in viewers watching Shorts every day. Because Shorts are vertical, the thumbnail dimensions are completely different from regular YouTube videos. This guide covers everything you need to know about YouTube Shorts thumbnail sizes in 2026.
 
 ## The Official YouTube Shorts Thumbnail Size
 
@@ -42,6 +42,8 @@ The biggest difference between Shorts and regular video thumbnails is the aspect
 | Display context | Desktop and mobile | Mobile-first |
 | Title safe zone | Center 80% | Center 80% |
 | File size limit | 2 MB | 2 MB |
+
+Because Shorts display vertically on phones, your thumbnail needs to grab attention in the first 0.5 seconds as users scroll through the Shorts feed.
 
 ## Safe Zones for Shorts Thumbnails
 
@@ -115,48 +117,16 @@ export default function BlogPost() {
         <h1 className="text-4xl font-bold mb-4 text-gray-900">
           YouTube Shorts Thumbnail Size: The Complete Guide 2026
         </h1>
-        <p className="text-gray-500 mb-6">2026-07-31 - 6 min read</p>
+        <p className="text-gray-500 mb-6">2026-08-01 - 6 min read</p>
         <p className="text-lg text-gray-600 mb-8 italic">
           Complete guide to YouTube Shorts thumbnail dimensions, safe zones, character handling, file format, and best practices.
         </p>
         {sections.map((para, i) => {
-          if (para.startsWith("| ")) {
-            const tblLines: string[][] = [];
-            for (const line of para.split("\n")) {
-              const cells = line.split("|").map((c) => c.trim()).filter((c) => c);
-              if (cells.length > 0) tblLines.push(cells);
-            }
-            if (tblLines.length < 3) return null;
-            const head: string[] = tblLines[0];
-            const body: string[][] = tblLines.slice(2);
-            return (
-              <table key={i} className="w-full border-collapse my-4">
-                <thead>
-                  <tr>
-                    {head.map((h, j) => <th key={j} className="border border-gray-200 px-3 py-2 bg-gray-50 text-left">{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {body.map((row, r) => (
-                    <tr key={r}>
-                      {row.map((c, j) => <td key={j} className="border border-gray-200 px-3 py-2 text-gray-700">{c}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            );
-          }
-          if (para.startsWith("## ")) {
+          if (para.startsWith("| ")) {`r`n            const tblLines = [];`r`n            for (const line of para.split("`n")) {`r`n              const cells = line.split("|").map((c) => c.trim()).filter((c) => c);`r`n              if (cells.length > 0) tblLines.push(cells);`r`n            }`r`n            if (tblLines.length < 3) return null;`r`n            const head = tblLines[0];`r`n            const body = tblLines.slice(2);`r`n            return (`r`n              <table key={i} className="w-full border-collapse my-4">`r`n                <thead>`r`n                  <tr>{head.map((h, j) => <th key={j} className="border border-gray-200 px-3 py-2 bg-gray-50 text-left">{h}</th>)}</tr>`r`n                </thead>`r`n                <tbody>`r`n                  {body.map((row, r) => <tr key={r}>{row.map((c, j) => <td key={j} className="border border-gray-200 px-3 py-2 text-gray-700">{c}</td>)}</tr>)}`r`n                </tbody>`r`n              </table>`r`n            );`r`n          }`r`nif (para.startsWith("## ")) {
             return <h2 key={i} className="text-2xl font-bold mt-8 mb-4 text-gray-900">{para.slice(3)}</h2>;
           }
           if (para.startsWith("### ")) {
             return <h3 key={i} className="text-xl font-bold mt-6 mb-3 text-gray-900">{para.slice(4)}</h3>;
-          }
-          if (para.startsWith("- ")) {
-            const items = para.split("\n").map((line, j) => (
-              <li key={j}>{line.slice(2)}</li>
-            ));
-            return <ul key={i} className="list-disc ml-6 mb-4 text-gray-700">{items}</ul>;
           }
           if (/^\d+\. /.test(para)) {
             const items = para.split("\n").map((line, j) => (
@@ -180,3 +150,5 @@ export default function BlogPost() {
     </div>
   );
 }
+
+
