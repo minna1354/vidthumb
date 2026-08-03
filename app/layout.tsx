@@ -50,6 +50,16 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
         {children}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-WEV55HE8EW"
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-WEV55HE8EW');`}
+        </Script>
       </body>
     </html>
   );
