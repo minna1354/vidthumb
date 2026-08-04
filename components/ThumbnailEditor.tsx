@@ -273,38 +273,49 @@ export default function ThumbnailEditor() {  const [image, setImage] = useState<
   const togglePlatform = useCallback((id: string) => {
     setSelectedPlatforms((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
   }, []);
-
-  const handleDownloadAll = useCallback(async () => {
-    if (!workingImage) return;
-    if (selectedPlatforms.length === 0) { setError("Please select at least one platform."); return; }
-    setProcessing(true);
-    try {
-      // Get latest platformTransforms via ref
+const handleDownloadAll = useCallback(async () => {
+  if (!workingImage) return;
+  if (selectedPlatforms.length === 0) {
+    setError("Please select at least one platform.");
+    return;
+  }
+  setProcessing(true);
+  try {
+    for (let i = 0; i < selectedPlatforms.length; i++) {
+      const platformId = selectedPlatforms[i];
+      const platform = PLATFORMS.find((p) => p.id === platformId);
+      if (!platform) continue;
+      // 关键：在循环内读最新的 currentTransforms
       const currentTransforms = platformTransformsRef.current;
-      for (let i = 0; i < selectedPlatforms.length; i++) {
-        const platformId = selectedPlatforms[i];
-        const platform = PLATFORMS.find((p) => p.id === platformId);
-        if (!platform) continue;
-        // Use THIS platform's saved state, NOT the current global state
-        const platformState = currentTransforms[platformId] || defaultTransform();
-        const tempCanvas = document.createElement("canvas");
-        drawToCanvas(tempCanvas, { width: platform.width, height: platform.height }, {
-          bgColor,
-          image: workingImage,
-          offset: platformState.offset,
-          zoom: platformState.zoom,
-        });
-        const ext = format === "jpeg" ? "jpg" : "png";
-        await downloadCanvas(tempCanvas, `vidthumb-${platform.id}-${platform.width}x${platform.height}.${ext}`, format, quality);
-              if (i < selectedPlatforms.length - 1) await new Promise((r) => setTimeout(r, 300));
+      const platformState = currentTransforms[platformId];
+      const tempCanvas = document.createElement("canvas");
+      drawToCanvas(tempCanvas, { width: platform.width, height: platform.height }, {
+        bgColor,
+        image: workingImage,
+        offset: platformState.offset,
+        zoom: platformState.zoom,
+      });
+      const ext = format === "jpeg" ? "jpg" : "png";
+      await downloadCanvas(
+        tempCanvas,
+        `vidthumb-${platform.id}-${platform.width}x${platform.height}.${ext}`,
+        format,
+        quality
+      );
+      if (i < selectedPlatforms.length - 1) await new Promise((r) => setTimeout(r, 300));
     }
-    window.gtag('event', 'download_thumbnail', {
+    window.gtag("event", "download_thumbnail", {
       platform_count: selectedPlatforms.length,
       format: format,
-      quality: format === 'jpeg' ? quality : null,
+      quality: format === "jpeg" ? quality : null,
     });
-  } catch (e) { setError("Download failed."); } finally { setProcessing(false); }
-  }, [workingImage, selectedPlatforms, format, quality, bgColor]);
+  } catch (e) {
+    setError("Download failed.");
+  } finally {
+    setProcessing(false);
+  }
+}, [workingImage, selectedPlatforms, format, quality, bgColor]);
+ 
   useEffect(() => {
     if (!image || !isEditMode) return;
     const handleKey = (e: KeyboardEvent) => {
