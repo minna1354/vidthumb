@@ -1,33 +1,38 @@
-﻿import { MetadataRoute } from 'next';
+﻿import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://vidthumb.co';
+  const baseUrl = "https://vidthumb.co";
   const now = new Date();
 
   return [
     {
       url: baseUrl,
       lastModified: now,
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly" as const,
       priority: 1.0,
     },
     {
-      url: baseUrl + '/blog/youtube-thumbnail-size-guide',
+      url: baseUrl + "/blog/youtube-thumbnail-size-guide",
       lastModified: now,
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly" as const,
       priority: 0.8,
     },
     {
-      url: baseUrl + '/blog/youtube-shorts-thumbnail-size',
+      url: baseUrl + "/blog/youtube-shorts-thumbnail-size",
       lastModified: now,
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly" as const,
       priority: 0.8,
     },
     {
-      url: baseUrl + '/blog/youtube-banner-size',
-      url: baseUrl + '/blog/youtube-description-tips',
+      url: baseUrl + "/blog/youtube-banner-size",
       lastModified: now,
-      changeFrequency: 'monthly' as const,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
+    {
+      url: baseUrl + "/blog/youtube-description-tips",
+      lastModified: now,
+      changeFrequency: "monthly" as const,
       priority: 0.8,
     },
   ];
