@@ -362,13 +362,18 @@ const handleDownloadAll = useCallback(async () => {
   }, [previewPlatform, offset, zoom, rotation, flipH, flipV]);
 
   const enterEditMode = useCallback(() => { editStartRef.current = { offset, zoom, rotation, flipH, flipV }; setIsEditMode(true); }, [offset, zoom, rotation, flipH, flipV]);
-   const confirmEdit = useCallback(() => {
-    setIsEditMode(false);
-    window.gtag('event', 'generate_thumbnail', {
-      platforms: selectedPlatforms.join(','),
-      platform_count: selectedPlatforms.length,
-    });
-  }, [selectedPlatforms]);
+const confirmEdit = useCallback(() => {
+  // 关键：保存当前编辑状态到 platformTransforms
+  setPlatformTransforms((prev) => ({
+    ...prev,
+    [previewPlatform]: { offset, zoom, rotation, flipH, flipV },
+  }));
+  setIsEditMode(false);
+  window.gtag("event", "generate_thumbnail", {
+    platforms: selectedPlatforms.join(","),
+    platform_count: selectedPlatforms.length,
+  });
+}, [previewPlatform, offset, zoom, rotation, flipH, flipV, selectedPlatforms]);
   const cancelEdit = useCallback(() => { if (editStartRef.current) { setOffset(editStartRef.current.offset); setZoom(editStartRef.current.zoom); setRotation(editStartRef.current.rotation); setFlipH(editStartRef.current.flipH); setFlipV(editStartRef.current.flipV); } setIsEditMode(false); }, []);
   const handleReset = useCallback(() => {
     if (image?.url) URL.revokeObjectURL(image.url);
