@@ -25,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: baseUrl + '/blog/youtube-banner-size',
+      url: baseUrl + '/blog/youtube-description-tips',
       lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
