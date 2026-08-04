@@ -205,7 +205,13 @@ export default function ThumbnailEditor() {  const [image, setImage] = useState<
     });
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => setImage({ url, width: img.width, height: img.height, file });
+        img.onload = () => {
+      setImage({ url, width: img.width, height: img.height, file });
+      window.gtag('event', 'upload_image', {
+        file_size: file.size,
+        file_type: file.type,
+      });
+    };
     img.onerror = () => { setError("Failed to load image."); URL.revokeObjectURL(url); };
     img.src = url;
   }, []);
@@ -290,11 +296,15 @@ export default function ThumbnailEditor() {  const [image, setImage] = useState<
         });
         const ext = format === "jpeg" ? "jpg" : "png";
         await downloadCanvas(tempCanvas, `vidthumb-${platform.id}-${platform.width}x${platform.height}.${ext}`, format, quality);
-        if (i < selectedPlatforms.length - 1) await new Promise((r) => setTimeout(r, 300));
-      }
-    } catch (e) { setError("Download failed."); } finally { setProcessing(false); }
+              if (i < selectedPlatforms.length - 1) await new Promise((r) => setTimeout(r, 300));
+    }
+    window.gtag('event', 'download_thumbnail', {
+      platform_count: selectedPlatforms.length,
+      format: format,
+      quality: format === 'jpeg' ? quality : null,
+    });
+  } catch (e) { setError("Download failed."); } finally { setProcessing(false); }
   }, [workingImage, selectedPlatforms, format, quality, bgColor]);
-
   useEffect(() => {
     if (!image || !isEditMode) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -341,7 +351,13 @@ export default function ThumbnailEditor() {  const [image, setImage] = useState<
   }, [previewPlatform, offset, zoom, rotation, flipH, flipV]);
 
   const enterEditMode = useCallback(() => { editStartRef.current = { offset, zoom, rotation, flipH, flipV }; setIsEditMode(true); }, [offset, zoom, rotation, flipH, flipV]);
-  const confirmEdit = useCallback(() => { setIsEditMode(false); }, []);
+   const confirmEdit = useCallback(() => {
+    setIsEditMode(false);
+    window.gtag('event', 'generate_thumbnail', {
+      platforms: selectedPlatforms.join(','),
+      platform_count: selectedPlatforms.length,
+    });
+  }, [selectedPlatforms]);
   const cancelEdit = useCallback(() => { if (editStartRef.current) { setOffset(editStartRef.current.offset); setZoom(editStartRef.current.zoom); setRotation(editStartRef.current.rotation); setFlipH(editStartRef.current.flipH); setFlipV(editStartRef.current.flipV); } setIsEditMode(false); }, []);
   const handleReset = useCallback(() => {
     if (image?.url) URL.revokeObjectURL(image.url);
