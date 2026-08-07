@@ -178,5 +178,17 @@ export default function BlogPost() {
         </a>
       </div>
     </div>
+
+        <div className="mt-12 p-6 bg-gray-50 rounded-2xl border border-gray-200">
+          <h3 className="text-xl font-bold mb-3 text-gray-900">Related guides on vidthumb.co</h3>
+          <ul className="list-disc ml-6 mb-0 text-gray-700 space-y-1">
+                        <li><a href="/blog/youtube-banner-size" className="text-orange-600 hover:underline">YouTube Banner Size: 2560x1440 and the 2026 Safe-Area Guide</a></li>
+                        <li><a href="/blog/youtube-description-tips" className="text-orange-600 hover:underline">YouTube Description Tips for Better Search and Click-Through</a></li>
+                        <li><a href="/blog/youtube-thumbnail-size-guide" className="text-orange-600 hover:underline">YouTube Thumbnail Size Guide: 1280x720 Spec and Best Practices</a></li>
+                        <li><a href="/blog/youtube-thumbnail-tips-for-clicks" className="text-orange-600 hover:underline">YouTube Thumbnail Tips for Clicks: 10 Tips for Better CTR</a></li>
+                        <li><a href="/blog/vidthumb-7-day-sprint-retrospective" className="text-orange-600 hover:underline">7-Day Content Sprint Retrospective: What I Shipped, What Worked, and What I Would Cut</a> - the build-in-public debrief of the week this blog launched</li>
+                        <li><a href="https://dev.to/minna-builds/i-built-a-free-safe-area-checker-for-youtube-banners-heres-what-i-learned-about-the-2560x1440-4e64" rel="nofollow" target="_blank" className="text-orange-600 hover:underline">Cross-post on Dev.to: Building a Safe-Area Checker</a> - 930-word write-up of how I built the same tool</li>
+          </ul>
+        </div>
   );
 }
