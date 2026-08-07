@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 const content = `
-> **TL;DR.** Upload **2560 x 1440 px** *(also called "channel art" on YouTube — they are the same thing)*, as **PNG or JPG**, **<= 6 MB**, **sRGB**. Keep your logo and text inside the **1546 x 423 px** center "safe area" so nothing gets cropped on mobile or desktop. Want it to look perfect on smart TVs too? Center your most important elements inside the **1235 x 338 px** inner "TV-safe" box. Use the free [safe-area checker](https://vidthumb.co/tools/safe-area) at the bottom of this article to preview every device crop before you upload.
+> **TL;DR.** Upload **2560 x 1440 px** *(also called "channel art" on YouTube — they are the same thing)*, as **PNG or JPG**, **<= 6 MB**, **sRGB**. Keep your logo and text inside the **1546 x 423 px** center "safe area" so nothing gets cropped on mobile or desktop. Want it to look perfect on smart TVs too? Center your most important elements inside the **1235 x 338 px** inner "TV-safe" box. Use the free [safe-area checker](https://vidthumb.co/) at the bottom of this article to preview every device crop before you upload.
 
 > **Disclosure.** vidthumb.co publishes the free safe-area checker referenced in this guide. All recommendations are first-party and editorial.
 
@@ -122,7 +122,7 @@ If you want a single, easy rule: **make a 2560 x 1440 canvas, drop everything im
 
 ### Step 1 — Open the free safe-area overlay
 
-[vidthumb.co/tools/safe-area](https://vidthumb.co/tools/safe-area) publishes a free PNG overlay with all three rectangles pre-drawn on a transparent 2560 x 1440 canvas. Drag it into your editor of choice as the bottom layer; design on top, hide the overlay when exporting, and ship.
+[vidthumb.co/](https://vidthumb.co/) publishes a free PNG overlay with all three rectangles pre-drawn on a transparent 2560 x 1440 canvas. Drag it into your editor of choice as the bottom layer; design on top, hide the overlay when exporting, and ship.
 
 Other free options that already include YouTube's safe area:
 
@@ -152,7 +152,7 @@ Before exporting, simulate what users will see on each device class. In Figma, a
 - **Desktop crop**: full canvas with the safe area highlighted
 - **TV crop**: full canvas at original size
 
-Or use the [vidthumb.co safe-area checker](https://vidthumb.co/tools/safe-area) — it overlays all three rectangles on your image so you can see exactly where things will and won't appear.
+Or use the [vidthumb.co safe-area checker](https://vidthumb.co/) — it overlays all three rectangles on your image so you can see exactly where things will and won't appear.
 
 ### Step 4 — Export
 
@@ -230,7 +230,7 @@ Shorts use a vertical 9:16 layout that does not reuse the channel banner; the sp
 
 ## Free safe-area checker (no email, no signup)
 
-Drop your finished banner into [vidthumb.co/tools/safe-area](https://vidthumb.co/tools/safe-area) to preview every device crop in one click — desktop, mobile, tablet, and TV. The checker overlays YouTube's three published safe-area rectangles on your image and flags anything placed outside them. Free, no signup.
+Drop your finished banner into [vidthumb.co/](https://vidthumb.co/) to preview every device crop in one click — desktop, mobile, tablet, and TV. The checker overlays YouTube's three published safe-area rectangles on your image and flags anything placed outside them. Free, no signup.
 
 For an editable starting point in Figma or Canva, the community file index at [Figma Community](https://www.figma.com/community) and the "YouTube Channel Art" search inside Canva both surface templates you can copy in one click. Cross-check any third-party template against the numbers above before publishing.
 
@@ -238,13 +238,13 @@ For an editable starting point in Figma or Canva, the community file index at [F
 
 Three steps, ten minutes:
 
-1. Open [vidthumb.co/tools/safe-area](https://vidthumb.co/tools/safe-area)
+1. Open [vidthumb.co/](https://vidthumb.co/)
 2. Drop in your logo, tagline, and schedule inside the center band
 3. Export and upload to YouTube Studio → Customization → Branding
 
 Your channel will look pro on every device the same afternoon. If you want a second opinion before publishing, drop the PNG into the free checker and review all the device crops in one place.
 
-- **Check your banner**: [vidthumb.co/tools/safe-area](https://vidthumb.co/tools/safe-area)
+- **Check your banner**: [vidthumb.co/](https://vidthumb.co/)
 - **Read next**: [YouTube Thumbnail Tips for Clicks](https://vidthumb.co/blog/youtube-thumbnail-tips-for-clicks) — the companion guide on getting thumbnails right (the other half of what your visitors see first)
 
 ## Related guides on vidthumb.co
