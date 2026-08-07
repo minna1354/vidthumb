@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import Ga4Events from "@/components/Ga4Events";
 
 export const metadata: Metadata = {
   title: "Vidthumb - Free YouTube Thumbnail Size Checker & Maker",
@@ -50,6 +51,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
         {children}
+        <Ga4Events />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-WEV55HE8EW"
           strategy="afterInteractive"
