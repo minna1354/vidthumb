@@ -1,4 +1,20 @@
-import type { Metadata } from "next";\nimport Link from "next/link";\n\nexport const metadata: Metadata = {\n  title: "vidthumb.co Blog - YouTube Thumbnail and Banner Tools",\n  description:\n    "Guides and tools for YouTube creators: banner safe areas, thumbnail sizing, and best practices for 2026.",\n  alternates: { canonical: "https://vidthumb.co/blog" },\n  openGraph: {\n    title: "vidthumb.co Blog",\n    description: "Guides and tools for YouTube creators.",\n    type: "website",\n    url: "https://vidthumb.co/blog",\n  },\n};\n\nconst posts = [
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "vidthumb.co Blog - YouTube Thumbnail and Banner Tools",
+  description:
+    "Guides and tools for YouTube creators: banner safe areas, thumbnail sizing, and best practices for 2026.",
+  alternates: { canonical: "https://vidthumb.co/blog" },
+  openGraph: {
+    title: "vidthumb.co Blog",
+    description: "Guides and tools for YouTube creators.",
+    type: "website",
+    url: "https://vidthumb.co/blog",
+  },
+};
+
+const posts = [
   {
     "slug": "vidthumb-7-day-sprint-retrospective",
     "title": "7-Day Content Sprint for vidthumb.co: What I Shipped, What Worked, and What I Would Cut",
@@ -47,4 +63,43 @@ import type { Metadata } from "next";\nimport Link from "next/link";\n\nexport c
     "readMin": 6,
     "tag": "Thumbnails"
   }
-];\n\nexport default function BlogIndex() {\n  return (\n    <div className="max-w-4xl mx-auto px-4 py-12">\n      <header className="mb-12 text-center">\n        <h1 className="text-4xl font-bold mb-3 text-gray-900">vidthumb.co Blog</h1>\n        <p className="text-lg text-gray-600 max-w-2xl mx-auto">\n          Guides and tools for YouTube creators: banner safe areas, thumbnail sizing, and best practices for 2026.\n        </p>\n      </header>\n      <div className="space-y-6">\n        {posts.map((p) => (\n          <article key={p.slug} className="p-6 border border-gray-200 rounded-2xl hover:border-orange-300 transition bg-white">\n            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-3">\n              <time>{p.date}</time>\n              <span>·</span>\n              <span>{p.readMin} min read</span>\n              <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">{p.tag}</span>\n            </div>\n            <h2 className="text-2xl font-bold mb-2">\n              <Link href={"/blog/" + p.slug} className="text-gray-900 hover:text-orange-600">\n                {p.title}\n              </Link>\n            </h2>\n            <p className="text-gray-600 mb-4">{p.description}</p>\n            <Link href={"/blog/" + p.slug} className="text-orange-600 hover:underline font-semibold">\n              Read guide →\n            </Link>\n          </article>\n        ))}\n      </div>\n      <div className="mt-16 p-8 bg-orange-50 rounded-2xl border-2 border-orange-200 text-center">\n        <h3 className="text-xl font-bold mb-2 text-gray-900">Need a quick tool?</h3>\n        <p className="text-gray-700 mb-4">Resize YouTube thumbnails and check banner safe areas in seconds.</p>\n        <a href="/" className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-lg hover:opacity-90 transition">Try vidthumb Free</a>\n      </div>\n    </div>\n  );\n}\n
+];
+
+export default function BlogIndex() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <header className="mb-12 text-center">
+        <h1 className="text-4xl font-bold mb-3 text-gray-900">vidthumb.co Blog</h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Guides and tools for YouTube creators: banner safe areas, thumbnail sizing, and best practices for 2026.
+        </p>
+      </header>
+      <div className="space-y-6">
+        {posts.map((p) => (
+          <article key={p.slug} className="p-6 border border-gray-200 rounded-2xl hover:border-orange-300 transition bg-white">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-3">
+              <time>{p.date}</time>
+              <span>·</span>
+              <span>{p.readMin} min read</span>
+              <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">{p.tag}</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">
+              <Link href={"/blog/" + p.slug} className="text-gray-900 hover:text-orange-600">
+                {p.title}
+              </Link>
+            </h2>
+            <p className="text-gray-600 mb-4">{p.description}</p>
+            <Link href={"/blog/" + p.slug} className="text-orange-600 hover:underline font-semibold">
+              Read guide →
+            </Link>
+          </article>
+        ))}
+      </div>
+      <div className="mt-16 p-8 bg-orange-50 rounded-2xl border-2 border-orange-200 text-center">
+        <h3 className="text-xl font-bold mb-2 text-gray-900">Need a quick tool?</h3>
+        <p className="text-gray-700 mb-4">Resize YouTube thumbnails and check banner safe areas in seconds.</p>
+        <a href="/" className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-lg hover:opacity-90 transition">Try vidthumb Free</a>
+      </div>
+    </div>
+  );
+}

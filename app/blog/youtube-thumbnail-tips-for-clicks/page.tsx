@@ -108,7 +108,6 @@ export default function BlogPost() {
           Try vidthumb Free
         </a>
       </div>
-    </div>
 
         <div className="mt-12 p-6 bg-gray-50 rounded-2xl border border-gray-200">
           <h3 className="text-xl font-bold mb-3 text-gray-900">Related guides on vidthumb.co</h3>
@@ -121,5 +120,6 @@ export default function BlogPost() {
                         <li><a href="https://dev.to/minna-builds/i-built-a-free-safe-area-checker-for-youtube-banners-heres-what-i-learned-about-the-2560x1440-4e64" rel="nofollow" target="_blank" className="text-orange-600 hover:underline">Cross-post on Dev.to: Building a Safe-Area Checker</a> - 930-word write-up of how I built the same tool</li>
           </ul>
         </div>
+    </div>
   );
 }

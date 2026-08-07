@@ -253,8 +253,8 @@ Your channel will look pro on every device the same afternoon. If you want a sec
 - [YouTube Shorts Thumbnail Size](https://vidthumb.co/blog/youtube-shorts-thumbnail-size)
 - [YouTube Thumbnail Tips for Clicks](https://vidthumb.co/blog/youtube-thumbnail-tips-for-clicks)
 - [YouTube Description Tips](https://vidthumb.co/blog/youtube-description-tips)
-- [7-Day Content Sprint Retrospective](" + RETRO + ") - the build-in-public debrief of the week this blog launched
-- [Cross-post on Dev.to: Building a Safe-Area Checker](" + DEVTO + ") - 930-word write-up of how I built the same tool
+- [7-Day Content Sprint Retrospective](/blog/vidthumb-7-day-sprint-retrospective) - the build-in-public debrief of the week this blog launched
+- [Cross-post on Dev.to: Building a Safe-Area Checker](https://dev.to/minna-builds/i-built-a-free-safe-area-checker-for-youtube-banners-heres-what-i-learned-about-the-2560x1440-4e64) - 930-word write-up of how I built the same tool
 
 ## Methodology and data
 
